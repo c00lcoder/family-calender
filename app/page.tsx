@@ -256,6 +256,17 @@ export default function HomePage() {
   const byDay = useMemo(() => {
     const map = new Map<string, Event[]>();
 
+    // First, ensure the next 4 days are always present (even if empty)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 4; i++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() + i);
+      const key = day.toDateString();
+      if (!map.has(key)) map.set(key, []);
+    }
+
+    // Now add events to the map
     for (const ev of events) {
       const startDate = new Date(ev.start);
       const endDate = new Date(ev.end);
@@ -341,7 +352,7 @@ export default function HomePage() {
                   <span>{formatDay(day)}</span>
                   {isToday && <span className="text-xs bg-yellow-400/20 text-yellow-300 px-2 py-1 rounded-full">Today</span>}
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 flex flex-col">
                   {list.map((ev, i) => {
                     const s = new Date(ev.start);
                     const e = new Date(ev.end);
@@ -384,7 +395,35 @@ export default function HomePage() {
                       </div>
                     );
                   })}
-                  {list.length === 0 && <div className="opacity-70">No events</div>}
+
+                  {/* Smart empty state messaging */}
+                  {list.length === 0 ? (
+                    isToday ? (
+                      // Today with no events
+                      <div className="flex items-center justify-center flex-1 opacity-50">
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">✨</div>
+                          <div className="text-sm font-medium">No more plans today</div>
+                        </div>
+                      </div>
+                    ) : (
+                      // Future day with no events
+                      <div className="flex items-center justify-center flex-1 opacity-50">
+                        <div className="text-center">
+                          <div className="text-4xl mb-2">🌟</div>
+                          <div className="text-sm font-medium">Flexible Day</div>
+                          <div className="text-xs mt-1 opacity-70">No plans yet</div>
+                        </div>
+                      </div>
+                    )
+                  ) : isToday && list.length > 0 ? (
+                    // Today with events - show "nothing else" message at bottom
+                    <div className="mt-auto pt-4 border-t border-white/10">
+                      <div className="text-center text-xs opacity-50">
+                        No more plans today ✨
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );
