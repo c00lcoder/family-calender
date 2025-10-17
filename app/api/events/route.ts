@@ -67,7 +67,8 @@ export async function GET() {
     merged.sort((a, b) => +new Date(a.start) - +new Date(b.start));
 
     return NextResponse.json({ events: merged });
-  } catch (e: any) {
-    return NextResponse.json({ events: [], error: e.message || "Unknown error" }, { status: 200 });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+    return NextResponse.json({ events: [], error: errorMessage }, { status: 200 });
   }
 }

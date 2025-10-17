@@ -88,11 +88,12 @@ export async function GET() {
         low: Math.round(data.daily.temperature_2m_min[0]),
       },
     });
-  } catch (e: any) {
+  } catch (e) {
     console.error("Weather fetch error:", e);
+    const errorMessage = e instanceof Error ? e.message : "Failed to fetch weather";
     return NextResponse.json(
       {
-        error: e.message || "Failed to fetch weather",
+        error: errorMessage,
         current: { temp: null, condition: "Unavailable", icon: "🌡️" },
         today: { high: null, low: null }
       },

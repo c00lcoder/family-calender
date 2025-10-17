@@ -225,8 +225,9 @@ export default function HomePage() {
       const j = await r.json();
       if (j.error) setError(j.error);
       setEvents(j.events ?? []);
-    } catch (e: any) {
-      setError(e.message || "Failed to load");
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : "Failed to load";
+      setError(errorMessage);
     }
   }
 
@@ -235,7 +236,7 @@ export default function HomePage() {
       const r = await fetch("/api/weather", { cache: "no-store" });
       const j = await r.json();
       setWeather(j);
-    } catch (e: any) {
+    } catch (e) {
       console.error("Weather load error:", e);
     }
   }
