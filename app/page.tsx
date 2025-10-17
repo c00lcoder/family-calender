@@ -331,7 +331,7 @@ export default function HomePage() {
             return (
               <div
                 key={key}
-                className={`bg-white/5 rounded-2xl p-4 backdrop-blur-sm border transition-all ${
+                className={`bg-white/5 rounded-2xl p-4 backdrop-blur-sm border transition-all min-h-[400px] flex flex-col ${
                   isToday
                     ? 'border-yellow-400/50 shadow-lg shadow-yellow-400/20 ring-2 ring-yellow-400/30'
                     : 'border-white/10 hover:border-white/20'
