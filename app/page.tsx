@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import DottedGlowBackground from "@/components/ui/dotted-glow-background";
 
 type Event = {
@@ -254,6 +254,8 @@ export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [weather, setWeather] = useState<Weather | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+  const lastTapRef = useRef<number>(0);
 
   async function loadEvents() {
     try {
@@ -285,6 +287,38 @@ export default function HomePage() {
       setTimeout(loadWeather, 5 * 60_000);
     }
   }
+
+  // Handle touch/click interactions
+  const handleInteraction = (e: React.MouseEvent | React.TouchEvent) => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current;
+
+    // Get coordinates
+    let x: number, y: number;
+    if ('touches' in e) {
+      const touch = e.touches[0] || e.changedTouches[0];
+      x = touch.clientX;
+      y = touch.clientY;
+    } else {
+      x = e.clientX;
+      y = e.clientY;
+    }
+
+    // Create ripple effect
+    const rippleId = Date.now();
+    setRipples(prev => [...prev, { id: rippleId, x, y }]);
+    setTimeout(() => {
+      setRipples(prev => prev.filter(r => r.id !== rippleId));
+    }, 1000);
+
+    // Double-tap detection (within 300ms)
+    if (timeSinceLastTap < 300) {
+      // Double tap detected - refresh the page
+      window.location.reload();
+    }
+
+    lastTapRef.current = now;
+  };
 
   useEffect(() => {
     loadEvents();
@@ -354,7 +388,11 @@ export default function HomePage() {
   const greeting = getGreeting();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white relative overflow-hidden">
+    <main
+      className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white relative overflow-hidden"
+      onClick={handleInteraction}
+      onTouchStart={handleInteraction}
+    >
       {/* Animated Dotted Glow Background */}
       <DottedGlowBackground
         className="pointer-events-none absolute inset-0 opacity-20"
@@ -367,6 +405,22 @@ export default function HomePage() {
         speedMax={0.4}
         speedScale={1}
       />
+
+      {/* Touch Ripple Effects */}
+      {ripples.map(ripple => (
+        <div
+          key={ripple.id}
+          className="absolute pointer-events-none z-50"
+          style={{
+            left: ripple.x,
+            top: ripple.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="w-4 h-4 rounded-full bg-blue-400/40 animate-ping" />
+          <div className="absolute inset-0 w-4 h-4 rounded-full bg-purple-400/30 animate-pulse" />
+        </div>
+      ))}
 
       <div className="max-w-7xl mx-auto p-4 md:p-6 relative z-10">
         <header className="mb-6">
