@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import DottedGlowBackground from "@/components/ui/dotted-glow-background";
 
 type Event = {
   start: string;
@@ -191,17 +192,52 @@ function WeatherDisplay({ weather }: { weather: Weather | null }) {
   );
 }
 
-// Event count card - compact version
-function EventCountCard({ count }: { count: number }) {
+// Next event countdown card
+function NextEventCard({ events }: { events: Event[] }) {
+  const [countdown, setCountdown] = useState<string>("");
+  const [nextEvent, setNextEvent] = useState<Event | null>(null);
+
+  useEffect(() => {
+    function updateCountdown() {
+      const now = new Date();
+
+      // Find the next upcoming event
+      const upcoming = events
+        .filter(ev => new Date(ev.start) > now)
+        .sort((a, b) => +new Date(a.start) - +new Date(b.start))[0];
+
+      setNextEvent(upcoming || null);
+
+      if (upcoming) {
+        const startTime = new Date(upcoming.start);
+        const diff = startTime.getTime() - now.getTime();
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (hours > 0) {
+          setCountdown(`${hours}h ${minutes}m`);
+        } else if (minutes > 0) {
+          setCountdown(`${minutes} min`);
+        } else {
+          setCountdown("Starting soon!");
+        }
+      }
+    }
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, [events]);
+
   return (
     <div className="bg-gradient-to-br from-pink-600/20 to-orange-600/20 rounded-2xl p-4 border border-pink-500/30 backdrop-blur-sm h-full">
       <div className="flex flex-col justify-center items-center h-full text-center">
-        {count > 0 ? (
+        {nextEvent ? (
           <>
-            <div className="text-5xl font-bold text-pink-300 mb-1">{count}</div>
-            <div className="text-sm opacity-80">
-              Event{count !== 1 ? 's' : ''} Coming Up
-            </div>
+            <div className="text-xs uppercase tracking-wider opacity-60 mb-2">Next Event In</div>
+            <div className="text-3xl font-bold text-pink-300 mb-2">{countdown}</div>
+            <div className="text-sm font-medium opacity-90 line-clamp-2">{nextEvent.title}</div>
           </>
         ) : (
           <>
@@ -235,9 +271,18 @@ export default function HomePage() {
     try {
       const r = await fetch("/api/weather", { cache: "no-store" });
       const j = await r.json();
-      setWeather(j);
+      // Only update if we got valid data (no error)
+      if (!j.error) {
+        setWeather(j);
+      } else {
+        // Keep previous weather data, retry in 5 minutes
+        console.log("Weather fetch error, retrying in 5 minutes...");
+        setTimeout(loadWeather, 5 * 60_000);
+      }
     } catch (e) {
-      console.error("Weather load error:", e);
+      // Keep previous weather data, retry in 5 minutes
+      console.error("Weather load error, retrying in 5 minutes...", e);
+      setTimeout(loadWeather, 5 * 60_000);
     }
   }
 
@@ -306,12 +351,24 @@ export default function HomePage() {
     );
   }, [events]);
 
-  const totalEvents = events.length;
   const greeting = getGreeting();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white">
-      <div className="max-w-7xl mx-auto p-4 md:p-6">
+    <main className="min-h-screen bg-gradient-to-b from-black via-gray-900 to-black text-white relative overflow-hidden">
+      {/* Animated Dotted Glow Background */}
+      <DottedGlowBackground
+        className="pointer-events-none absolute inset-0 opacity-20"
+        gap={12}
+        radius={1}
+        color="rgba(115, 115, 115, 0.9)"
+        glowColor="rgba(148, 163, 184, 0.9)"
+        opacity={.9}
+        speedMin={0.1}
+        speedMax={0.4}
+        speedScale={1}
+      />
+
+      <div className="max-w-7xl mx-auto p-4 md:p-6 relative z-10">
         <header className="mb-6">
           {/* Greeting Header */}
           <div className="text-center mb-4">
@@ -320,11 +377,11 @@ export default function HomePage() {
             </h1>
           </div>
 
-          {/* Info cards row: Clock, Weather, and Event Count */}
+          {/* Info cards row: Clock, Weather, and Next Event */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             <LiveClock />
             <WeatherDisplay weather={weather} />
-            <EventCountCard count={totalEvents} />
+            <NextEventCard events={events} />
           </div>
 
           {error && (
