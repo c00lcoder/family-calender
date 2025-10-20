@@ -371,6 +371,7 @@ export default function HomePage() {
       clearInterval(eventsTimer);
       clearInterval(weatherTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Group by day - handle multi-day events
