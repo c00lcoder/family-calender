@@ -260,21 +260,63 @@ export default function HomePage() {
   async function loadEvents() {
     try {
       const r = await fetch("/api/events", { cache: "no-store" });
+
+      // Check if response is OK
+      if (!r.ok) {
+        console.error(`Events API error: ${r.status}, keeping previous data`);
+        setTimeout(loadEvents, 5 * 60_000); // Retry in 5 minutes
+        return;
+      }
+
+      // Check if response is JSON
+      const contentType = r.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Events API did not return JSON, keeping previous data");
+        setTimeout(loadEvents, 5 * 60_000); // Retry in 5 minutes
+        return;
+      }
+
       const j = await r.json();
-      if (j.error) setError(j.error);
-      setEvents(j.events ?? []);
+
+      // Only update if we got valid data (no error or has events)
+      if (!j.error && j.events) {
+        setEvents(j.events);
+        setError(null); // Clear any previous errors
+      } else {
+        // Keep previous events data, retry in 5 minutes
+        console.log("Events fetch returned error, keeping previous data. Retrying in 5 minutes...");
+        setTimeout(loadEvents, 5 * 60_000);
+      }
     } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : "Failed to load";
-      setError(errorMessage);
+      // Keep previous events data, retry in 5 minutes
+      console.error("Events load error, keeping previous data. Retrying in 5 minutes...", e);
+      setTimeout(loadEvents, 5 * 60_000);
     }
   }
 
   async function loadWeather() {
     try {
       const r = await fetch("/api/weather", { cache: "no-store" });
+
+      // Check if response is OK
+      if (!r.ok) {
+        console.error(`Weather API error: ${r.status}`);
+        setTimeout(loadWeather, 5 * 60_000);
+        return;
+      }
+
+      // Check if response is JSON
+      const contentType = r.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("Weather API did not return JSON");
+        setTimeout(loadWeather, 5 * 60_000);
+        return;
+      }
+
       const j = await r.json();
+
       // Only update if we got valid data (no error)
-      if (!j.error) {
+      if (!j.error && j.current) {
         setWeather(j);
       } else {
         // Keep previous weather data, retry in 5 minutes
