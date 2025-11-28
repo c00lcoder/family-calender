@@ -401,8 +401,10 @@ export default function HomePage() {
       const isMultiDay = endDay.getTime() > startDay.getTime();
 
       if (isMultiDay) {
-        // Add event to each day it spans
-        const currentDay = new Date(startDay);
+        // Add event to each day it spans, but only from today forward
+        // (skip past days for multi-day events that started before today)
+        const loopStart = startDay < today ? today : startDay;
+        const currentDay = new Date(loopStart);
         while (currentDay <= endDay) {
           const key = currentDay.toDateString();
           if (!map.has(key)) map.set(key, []);
